@@ -1,0 +1,1 @@
+/home/pratima/Downloads/plumed-test//src/lib/Plumed.inc.static
