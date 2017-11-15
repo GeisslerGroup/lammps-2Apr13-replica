@@ -67,7 +67,7 @@ void Plumed_Exchange::command(int narg, char **arg)
     error->all(FLERR,"Must have more than one processor partition to Plumed_Exchange");
   if (domain->box_exist == 0)
     error->all(FLERR,"Plumed_Exchange command before simulation box is defined");
-  if (narg != 6 && narg != 7)
+  if (narg != 8 && narg != 9)
     error->universe_all(FLERR,"Illegal Plumed_Exchange command");
 
   int nsteps = force->inumeric(FLERR,arg[0]);
@@ -80,11 +80,12 @@ void Plumed_Exchange::command(int narg, char **arg)
     error->universe_all(FLERR,"Plumed_Exchangeing fix ID is not defined");
 
   kappa = force->inumeric(FLERR,arg[4]);
-  seed_swap = force->inumeric(FLERR,arg[5]);
-  seed_boltz = force->inumeric(FLERR,arg[6]);
+  both_temp = force->inumeric(FLERR,arg[5]);
+  seed_swap = force->inumeric(FLERR,arg[6]);
+  seed_boltz = force->inumeric(FLERR,arg[7]);
 
   my_set_ang = universe->iworld;
-  if (narg == 8) my_set_ang = force->inumeric(FLERR,arg[7]);
+  if (narg == 9) my_set_ang = force->inumeric(FLERR,arg[8]);
 
   // swap frequency must evenly divide total # of timesteps
 
@@ -151,7 +152,7 @@ void Plumed_Exchange::command(int narg, char **arg)
     MPI_Allgather(&me_universe,1,MPI_INT,world2root,1,MPI_INT,roots);
   MPI_Bcast(world2root,nworlds,MPI_INT,0,world);
 
-  // create static list of set Plumed_Exchangeatures
+  // create static list of set Plumed_Exchange angles
   // allgather Plumed_Exchangeing arg "ang" across root procs
   // bcast from each root to other procs in world
 
@@ -183,6 +184,8 @@ void Plumed_Exchange::command(int narg, char **arg)
   int i,which,partner,swap,partner_set_ang,partner_world;
   double pe,pe_partner,boltz_factor,new_ang;
   MPI_Status status;
+  // ***CHANGED***
+  double curr_th, curr_th_partner;
 
   if (me_universe == 0 && universe->uscreen)
     fprintf(universe->uscreen,"Setting up Plumed_Exchangeing ...\n");
@@ -222,6 +225,8 @@ void Plumed_Exchange::command(int narg, char **arg)
 
     pe = pe_compute->compute_scalar();
     pe_compute->addstep(update->ntimestep + nevery);
+    // ***CHANGED***
+    curr_th = modify->fix[whichfix]->compute_plumed_arg();
 
     // which = which of 2 kinds of swaps to do (0,1)
 
@@ -255,15 +260,20 @@ void Plumed_Exchange::command(int narg, char **arg)
 
     swap = 0;
     if (partner != -1) {
+      // ***CHANGED***
       if (me_universe > partner)
-        MPI_Send(&pe,1,MPI_DOUBLE,partner,0,universe->uworld);
+        MPI_Send(&curr_th,1,MPI_DOUBLE,partner,0,universe->uworld);
       else
-        MPI_Recv(&pe_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+        MPI_Recv(&curr_th_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
 
+      // ***CHANGED***
       if (me_universe < partner) {
-        boltz_factor = (pe - pe_partner) *
-          (1.0/(boltz*set_ang[my_set_ang]) -
-           1.0/(boltz*set_ang[partner_set_ang]));
+        double fac = (curr_th - curr_th_partner) * 
+                     (set_ang[my_set_ang] - set_ang[partner_set_ang]) ;
+        boltz_factor = 1.0 * kappa/(boltz*both_temp) * fac;
+//         boltz_factor = (pe - pe_partner) *
+//           (1.0/(boltz*set_ang[my_set_ang]) -
+//            1.0/(boltz*set_ang[partner_set_ang]));
         if (boltz_factor >= 0.0) swap = 1;
         else if (ranboltz->uniform() < exp(boltz_factor)) swap = 1;
       }
@@ -276,8 +286,8 @@ void Plumed_Exchange::command(int narg, char **arg)
 #ifdef PLUMEDEXCHANGE_DEBUG
       if (me_universe < partner)
         printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
-               me_universe,partner,swap,my_set_ang,partner_set_ang,
-               pe,pe_partner,boltz_factor,exp(boltz_factor));
+               me_universe,partner,swap,set_ang[my_set_ang],set_ang[partner_set_ang],
+               curr_th,curr_th_partner,boltz_factor,exp(boltz_factor));
 #endif
 
     }
@@ -286,9 +296,11 @@ void Plumed_Exchange::command(int narg, char **arg)
 
     MPI_Bcast(&swap,1,MPI_INT,0,world);
 
-    // rescale kinetic energy via velocities if move is accepted
-
-    if (swap) scale_velocities(partner_set_ang,my_set_ang);
+    // ***CHANGED***
+    // velocity rescaling not necessary since we have the same temperature
+//     // rescale kinetic energy via velocities if move is accepted
+// 
+//     if (swap) scale_velocities(partner_set_ang,my_set_ang);
 
     // if my world swapped, all procs in world reset ang target of Fix
 

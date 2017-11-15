@@ -39,6 +39,7 @@ class Plumed_Exchange : protected Pointers {
   int nevery;                  // # of timesteps between swaps
   int nswaps;                  // # of Plumed_Exchangeing swaps to perform
   double kappa;		       // spring constant for simulations
+  double both_temp;	       // temperature of both replicas
   int seed_swap;               // 0 = toggle swaps, n = RNG for swap direction
   int seed_boltz;              // seed for Boltz factor comparison
   int whichfix;                // index of Plumed_Exchangeature fix to use
