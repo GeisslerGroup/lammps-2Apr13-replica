@@ -214,7 +214,9 @@ void FixPlumed::post_force(int vflag)
 
 // do the real calculation:
   p->cmd("calc");
-  
+ 
+// ***CHANGED***
+// able to change the plumed bias centre using this call 
 //   double new_at = gotat;
 //   p->cmd("setAt", &new_at);
 
@@ -237,6 +239,9 @@ void FixPlumed::min_post_force(int vflag)
   post_force(vflag);
 }
 
+// ***CHANGED***
+// new function to return plumed PE to modify total PE
+// useful for parallel tempering
 double FixPlumed::compute_scalar()
 {
   double energy;
@@ -244,6 +249,8 @@ double FixPlumed::compute_scalar()
   return energy;
 }
 
+// ***CHANGED***
+// new function to return plumed current argument value (only for Restraint right now)
 double FixPlumed::compute_plumed_arg()
 {
   double current_ang;
@@ -252,6 +259,8 @@ double FixPlumed::compute_plumed_arg()
   return current_ang;
 }
 
+// ***CHANGED***
+// new function for bias exchange to happen
 void FixPlumed::reset_target(double new_at)
 {
   p->cmd("setAt", &new_at);

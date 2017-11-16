@@ -26,6 +26,7 @@ class FixPlumed : public Fix {
   void post_force_respa(int, int, int);
   void min_post_force(int);
   double compute_scalar();
+  // ***CHANGED***
   void reset_target(double);
   double compute_plumed_arg();
   double curr_ang;
