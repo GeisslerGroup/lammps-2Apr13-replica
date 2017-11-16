@@ -38,7 +38,7 @@
 
 using namespace LAMMPS_NS;
 
-#define PLUMEDEXCHANGE_DEBUG 1
+// #define PLUMEDEXCHANGE_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
 
@@ -291,7 +291,7 @@ void Plumed_Exchange::command(int narg, char **arg)
 
 #ifdef PLUMEDEXCHANGE_DEBUG
       if (me_universe < partner)
-        printf("SWAP %d & %d: yes = %d,at angs = %g %g, curr angs = %g %g, Bz = %g %g\n",
+        printf("SWAP %d & %d: yes = %d,at angs = %g %g, curr angs = %g %g, Bz = %g exp(Bz) = %g\n",
                me_universe,partner,swap,centre,centre_partner,
                curr_th,curr_th_partner,boltz_factor,exp(boltz_factor));
 #endif
