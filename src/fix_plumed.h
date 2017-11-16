@@ -28,6 +28,7 @@ class FixPlumed : public Fix {
   double compute_scalar();
   void reset_target(double);
   double compute_plumed_arg();
+  double curr_ang;
 
  private:
 // pointer to plumed object:

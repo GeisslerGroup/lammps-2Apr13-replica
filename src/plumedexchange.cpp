@@ -185,7 +185,7 @@ void Plumed_Exchange::command(int narg, char **arg)
   double pe,pe_partner,boltz_factor,new_ang;
   MPI_Status status;
   // ***CHANGED***
-  double curr_th, curr_th_partner;
+  double curr_th, curr_th_partner = 0, centre, centre_partner;
 
   if (me_universe == 0 && universe->uscreen)
     fprintf(universe->uscreen,"Setting up Plumed_Exchangeing ...\n");
@@ -223,10 +223,11 @@ void Plumed_Exchange::command(int narg, char **arg)
     // compute PE
     // notify compute it will be called at next swap
 
-    pe = pe_compute->compute_scalar();
-    pe_compute->addstep(update->ntimestep + nevery);
+//     pe = pe_compute->compute_scalar();
+//     pe_compute->addstep(update->ntimestep + nevery);
     // ***CHANGED***
     curr_th = modify->fix[whichfix]->compute_plumed_arg();
+    // Checked this returns correct value
 
     // which = which of 2 kinds of swaps to do (0,1)
 
@@ -237,11 +238,11 @@ void Plumed_Exchange::command(int narg, char **arg)
     // partner_set_ang = which set ang I am partnering with for this swap
 
     if (which == 0) {
-      if (my_set_ang % 2 == 0) partner_set_ang = my_set_ang + 1;
-      else partner_set_ang = my_set_ang - 1;
+      if (my_set_ang % 2 == 0) { partner_set_ang = my_set_ang + 1; }
+      else { partner_set_ang = my_set_ang - 1; }
     } else {
-      if (my_set_ang % 2 == 1) partner_set_ang = my_set_ang + 1;
-      else partner_set_ang = my_set_ang - 1;
+      if (my_set_ang % 2 == 1) { partner_set_ang = my_set_ang + 1; }
+      else { partner_set_ang = my_set_ang - 1; }
     }
 
     // partner = proc ID to swap with
@@ -258,35 +259,40 @@ void Plumed_Exchange::command(int narg, char **arg)
     // lo proc make Boltzmann decision on whether to swap
     // lo proc communicates decision back to hi proc
 
+    // ***CHANGED***
+    centre = set_ang[my_set_ang];
+    centre_partner = set_ang[partner_set_ang];
+
     swap = 0;
     if (partner != -1) {
       // ***CHANGED***
-      if (me_universe > partner)
+      if (me_universe > partner) {
         MPI_Send(&curr_th,1,MPI_DOUBLE,partner,0,universe->uworld);
-      else
+      }
+      else {
         MPI_Recv(&curr_th_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+      }
+
+//       printf("partner :%d, my curr angle: %f, partner curr angle: %f\n", partner, curr_th, curr_th_partner);
 
       // ***CHANGED***
       if (me_universe < partner) {
         double fac = (curr_th - curr_th_partner) * 
-                     (set_ang[my_set_ang] - set_ang[partner_set_ang]) ;
+                     (centre - centre_partner) ;
         boltz_factor = 1.0 * kappa/(boltz*both_temp) * fac;
-//         boltz_factor = (pe - pe_partner) *
-//           (1.0/(boltz*set_ang[my_set_ang]) -
-//            1.0/(boltz*set_ang[partner_set_ang]));
-        if (boltz_factor >= 0.0) swap = 1;
-        else if (ranboltz->uniform() < exp(boltz_factor)) swap = 1;
+        if (boltz_factor >= 0.0) { swap = 1; }
+        else if (ranboltz->uniform() < exp(boltz_factor)) { swap=1; }
       }
 
-      if (me_universe < partner)
-        MPI_Send(&swap,1,MPI_INT,partner,0,universe->uworld);
-      else
-        MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status);
+      if (me_universe < partner) {
+        MPI_Send(&swap,1,MPI_INT,partner,0,universe->uworld); }
+      else {
+        MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status); }
 
 #ifdef PLUMEDEXCHANGE_DEBUG
       if (me_universe < partner)
-        printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
-               me_universe,partner,swap,set_ang[my_set_ang],set_ang[partner_set_ang],
+        printf("SWAP %d & %d: yes = %d,at angs = %g %g, curr angs = %g %g, Bz = %g %g\n",
+               me_universe,partner,swap,centre,centre_partner,
                curr_th,curr_th_partner,boltz_factor,exp(boltz_factor));
 #endif
 

@@ -201,10 +201,21 @@ void FixPlumed::post_force(int vflag)
   if(atom->q) p->cmd("setCharges",&charges[0]);
   p->cmd("setVirial",&virial[0][0]);
 
+  // ***CHANGED***
+//   double curr_ang;
+//   p->cmd("getCurrentAng", &curr_ang);
+//   printf("current angle is %f\n", curr_ang);
+//   double gotat = 10;
+//   p->cmd("getCentre", &gotat);
+//   printf("getCentre angle is %f\n", gotat);
+//   double energy;
+//   p->cmd("getBias", &energy);
+//   printf("getBias returns %f\n",energy);
+
 // do the real calculation:
   p->cmd("calc");
-//   p->cmd("getCurrentAng");
-//   double new_at = 12.0;
+  
+//   double new_at = gotat;
 //   p->cmd("setAt", &new_at);
 
 // retransform virial to lammps representation:
@@ -235,9 +246,9 @@ double FixPlumed::compute_scalar()
 
 double FixPlumed::compute_plumed_arg()
 {
-//   return 0.0;
   double current_ang;
   p->cmd("getCurrentAng", &current_ang);
+//   printf("in plumed function current angle: %f \n", current_ang);
   return current_ang;
 }
 

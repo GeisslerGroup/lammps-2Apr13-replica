@@ -70,6 +70,10 @@ class Fix : protected Pointers {
   int *extlist;             // list of 0/1 int/ext for each vec component
   int extarray;             // 0/1 if global array is intensive/extensive
 
+  // ***CHANGED***
+  double curr_ang;		 // declared here to be inherited everywhere
+				 // -125256363 for random fixes, changed if PLUMED used
+
   double *vector_atom;           // computed per-atom vector
   double **array_atom;           // computed per-atom array
   double *vector_local;          // computed local vector

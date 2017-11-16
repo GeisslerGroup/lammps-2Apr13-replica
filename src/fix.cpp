@@ -66,6 +66,9 @@ Fix::Fix(LAMMPS *lmp, int narg, char **arg) : Pointers(lmp)
   comm_forward = comm_reverse = comm_border = 0;
   restart_reset = 0;
 
+  // ***CHANGED***
+  curr_ang = -125256363.0;
+
   // reasonable defaults
   // however, each fix that uses these values should explicitly set them
 
