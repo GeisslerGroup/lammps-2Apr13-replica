@@ -38,7 +38,7 @@
 
 using namespace LAMMPS_NS;
 
-// #define PLUMEDEXCHANGE_DEBUG 1
+#define PLUMEDEXCHANGE_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
 
@@ -213,6 +213,16 @@ void Plumed_Exchange::command(int narg, char **arg)
 
   for (int iswap = 0; iswap < nswaps; iswap++) {
 
+    // ***CHANGED***
+    // sets bias centre to specified world variable before doing any integration at all!
+    modify->fix[whichfix]->reset_target(set_ang[my_set_ang]);
+
+    // checking if we already know what our centres should be, before any integration
+//     for (i = 0; i < nworlds; i++) {
+    printf("processor #: %d, set_ang result: %g, nworlds: %d \n", my_set_ang, set_ang[my_set_ang], nworlds);
+//     }
+//     exit(0);
+
     // run for nevery timesteps
 
     update->integrate->run(nevery);
@@ -225,6 +235,7 @@ void Plumed_Exchange::command(int narg, char **arg)
 
 //     pe = pe_compute->compute_scalar();
 //     pe_compute->addstep(update->ntimestep + nevery);
+    
     // ***CHANGED***
     curr_th = modify->fix[whichfix]->compute_plumed_arg();
     // Checked this returns correct value
@@ -277,9 +288,8 @@ void Plumed_Exchange::command(int narg, char **arg)
 
       // ***CHANGED***
       if (me_universe < partner) {
-        double fac = (curr_th - curr_th_partner) * 
-                     (centre - centre_partner) ;
-        boltz_factor = 1.0 * kappa/(boltz*both_temp) * fac;
+        double fac = (curr_th - curr_th_partner) * (centre - centre_partner) ;
+        boltz_factor = -1.0 * kappa/(boltz*both_temp) * fac;
         if (boltz_factor >= 0.0) { swap = 1; }
         else if (ranboltz->uniform() < exp(boltz_factor)) { swap=1; }
       }
